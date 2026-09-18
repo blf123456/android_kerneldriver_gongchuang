@@ -321,16 +321,41 @@ int gongchuang_mmap(struct file *file, struct socket *sock, struct vm_area_struc
 	return 0;
 }
 
+/* Some Android vendor kernels do not export these sock_no_* helpers.
+ * Keep unsupported operations local instead of depending on optional exports.
+ */
+static int gongchuang_no_bind(struct socket *sock, struct sockaddr *addr, int len)
+{
+    return -EOPNOTSUPP;
+}
+
+static int gongchuang_no_connect(struct socket *sock, struct sockaddr *addr,
+                                int len, int flags)
+{
+    return -EOPNOTSUPP;
+}
+
+static int gongchuang_no_getname(struct socket *sock, struct sockaddr *addr, int peer)
+{
+    return -EOPNOTSUPP;
+}
+
+static int gongchuang_no_recvmsg(struct socket *sock, struct msghdr *msg,
+                                size_t len, int flags)
+{
+    return -EOPNOTSUPP;
+}
+
 static struct proto_ops gongchuang_proto_ops = 
 {
 	.family = PF_DECnet,
 	.owner = THIS_MODULE,
 	.release = gongchuang_release,
-	.bind = sock_no_bind,
-	.connect = sock_no_connect,
+	.bind = gongchuang_no_bind,
+	.connect = gongchuang_no_connect,
 	.socketpair = sock_no_socketpair,
 	.accept = sock_no_accept,
-	.getname = sock_no_getname,
+	.getname = gongchuang_no_getname,
 	.poll		= gongchuang_poll,
 	.ioctl		= gongchuang_ioctl,
 	.listen		= sock_no_listen,
@@ -338,7 +363,7 @@ static struct proto_ops gongchuang_proto_ops =
 	.setsockopt	= gongchuang_setsockopt,
 	.getsockopt	= gongchuang_getsockopt,
 	.sendmsg	= gongchuang_sendmsg,
-	.recvmsg	= sock_no_recvmsg,
+	.recvmsg	= gongchuang_no_recvmsg,
 	.mmap		= gongchuang_mmap
 };
 
