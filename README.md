@@ -1,5 +1,17 @@
 # Android Kernel Driver
 
+## DDK cloud builds
+
+Use [GitHub Actions → Android kernel modules (DDK) → Run workflow](https://github.com/blf123456/android_kerneldriver_gongchuang/actions/workflows/ddk-build.yml). Source and build configuration changes also trigger builds on pushes and pull requests. No additional secrets are required.
+
+The workflow uses `ghcr.io/ylarod/ddk:<target>-20260313`, the same DDK release used by `blf123456/DFM_kernel_UC`, for six ARM64 targets: `android12-5.10`, `android13-5.10`, `android13-5.15`, `android14-6.1`, `android15-6.6`, and `android16-6.12`.
+
+Download `gongchuang-<target>` from the run's **Artifacts** section. Each archive contains the newly compiled `gongchuang.ko`, SHA-256 checksum, module metadata, commit ID, image digest, and build log. Successful artifacts are retained for 30 days; failed build diagnostics for 14 days. Builds use an isolated source copy and never package the prebuilt modules tracked in this repository.
+
+The existing `HIDE_SELF_MODULE=0` setting now disables both compilation and invocation of module hiding. Debug symbols and DDK symbol version information are preserved. A successful build verifies ARM64 output; loading still requires a matching device kernel configuration, ABI, and signature policy.
+
+See [the Chinese DDK guide](README_CN.md#github-actions-云编译ddk) for local Docker commands. A configured DDK host can also run `DDK_TARGET=android14-6.1 make -j"$(nproc)"`, with an optional `KDIR` override.
+
 > A powerful Android kernel driver supporting Linux kernel 5.1 to 6.12 (Android 12-16), providing advanced memory manipulation capabilities through a custom network protocol family.
 
 ## 📑 Table of Contents

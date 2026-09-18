@@ -1,0 +1,99 @@
+name: Android kernel modules (DDK)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/**'
+      - 'Makefile'
+      - 'scripts/build-ddk.sh'
+      - '.gitattributes'
+      - '.github/workflows/ddk-build.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'Makefile'
+      - 'scripts/build-ddk.sh'
+      - '.gitattributes'
+      - '.github/workflows/ddk-build.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ddk-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - android12-5.10
+          - android13-5.10
+          - android13-5.15
+          - android14-6.1
+          - android15-6.6
+          - android16-6.12
+    env:
+      DDK_TARGET: ${{ matrix.target }}
+      DDK_IMAGE: ghcr.io/ylarod/ddk:${{ matrix.target }}-20260313
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Pull DDK image
+        run: |
+          docker pull --platform linux/amd64 "$DDK_IMAGE"
+          mkdir -p "artifacts/$DDK_TARGET"
+          docker image inspect --format '{{index .RepoDigests 0}}' "$DDK_IMAGE" \
+            > "artifacts/$DDK_TARGET/image-digest.txt"
+
+      - name: Build and verify ARM64 module
+        run: |
+          docker run --rm --platform linux/amd64 \
+            -e DDK_TARGET -e DDK_IMAGE -e GITHUB_SHA \
+            -v "$GITHUB_WORKSPACE:/build" -w /build \
+            "$DDK_IMAGE" bash -lc 'bash scripts/build-ddk.sh'
+
+      - name: Upload module and build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: gongchuang-${{ matrix.target }}
+          path: artifacts/${{ matrix.target }}/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload failed build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-build-${{ matrix.target }}
+          path: |
+            artifacts/${{ matrix.target }}/build.log
+            artifacts/${{ matrix.target }}/image-digest.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+  summary:
+    name: DDK build summary
+    if: always()
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check all targets
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          echo "DDK matrix result: $BUILD_RESULT" >> "$GITHUB_STEP_SUMMARY"
+          test "$BUILD_RESULT" = success

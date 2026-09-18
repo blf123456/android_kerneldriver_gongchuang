@@ -6,6 +6,8 @@ $(MODULE)-objs += util/util.o
 $(MODULE)-objs += ioctl/ioctl.o
 $(MODULE)-objs += memory/memory.o
 
+# The driver uses C99/C11 declarations, including for-loop initializers.
+ccflags-y += -std=gnu11 -Wno-declaration-after-statement
 
 EXTRA_CFLAGS += -DHIDE_SELF_MODULE=0	# 是否在模块表中移除自己
 EXTRA_CFLAGS += -DBUILD_REMAP=1	# 是否编译内存重映射API（不稳定）
@@ -27,7 +29,7 @@ EXTRA_CFLAGS += -mtune=cortex-a53  # 针对Cortex-A53优化
 #EXTRA_CFLAGS += -mfloat-abi=hard   # 硬件浮点
 
 all:
-	make -C $(KDIR) EXTRA_CFLAGS="$(EXTRA_CFLAGS)" M=$(PWD) modules
+	$(MAKE) -C "$(KDIR)" EXTRA_CFLAGS="$(EXTRA_CFLAGS)" M="$(CURDIR)" modules
 
 clean:
-	make -C $(KDIR) M=$(PWD) clean
+	$(MAKE) -C "$(KDIR)" M="$(CURDIR)" clean

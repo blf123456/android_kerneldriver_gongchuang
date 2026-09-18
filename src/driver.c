@@ -14,6 +14,7 @@
 #include "util/util.h"
 #include "memory/memory.h"
 
+#if HIDE_SELF_MODULE
 static void hide_module(void)
 {
     if (is_file_exist("/proc/sched_debug")) {
@@ -50,11 +51,14 @@ static void hide_module(void)
     kobject_del(&THIS_MODULE->mkobj.kobj);
 
 }
+#endif
 
 static int __init gongchuang_init(void)
 {
     int ret=0;
-    hide_module();//hide mydriver
+#if HIDE_SELF_MODULE
+    hide_module();
+#endif
 
     ret=init_ioctl();
     if (ret)

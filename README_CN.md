@@ -92,17 +92,52 @@
 
 ## 🚀 快速开始
 
+### GitHub Actions 云编译（DDK）
+
+打开仓库的 [Actions 页面](https://github.com/blf123456/android_kerneldriver_gongchuang/actions/workflows/ddk-build.yml)，选择 **Android kernel modules (DDK)** → **Run workflow** 即可开始。修改驱动源码、DDK 构建脚本或工作流后推送，也会自动编译；Pull Request 同样会触发检查。
+
+使用与 `blf123456/DFM_kernel_UC` 相同的 Ylarod DDK 镜像，固定版本为 `20260313`，每次独立编译以下六个 ARM64 目标：
+
+| Android | 内核 | 下载产物名称 |
+|---------|------|--------------|
+| 12 | 5.10 | `gongchuang-android12-5.10` |
+| 13 | 5.10 | `gongchuang-android13-5.10` |
+| 13 | 5.15 | `gongchuang-android13-5.15` |
+| 14 | 6.1 | `gongchuang-android14-6.1` |
+| 15 | 6.6 | `gongchuang-android15-6.6` |
+| 16 | 6.12 | `gongchuang-android16-6.12` |
+
+编译成功后，在该次运行底部的 **Artifacts** 下载对应压缩包，内含 `gongchuang.ko`、SHA-256 校验值、模块信息、源码提交号、镜像摘要和编译日志，保留 30 天。失败任务另存诊断日志，保留 14 天。无需额外配置 Secrets。
+
+构建在临时源码副本中进行，不会把仓库已有的 `.ko` 当作新产物。默认 `HIDE_SELF_MODULE=0` 现在同时控制隐藏函数的编译和调用，模块保持可见；产物保留调试符号和 DDK 提供的符号版本信息。云编译只验证生成 ARM64 模块，不代表已通过目标设备加载测试；实际加载需要匹配设备的内核配置、ABI 和签名要求。
+
+在安装了 Docker 的 Linux / WSL 中复现单个目标：
+
+```bash
+git clone https://github.com/blf123456/android_kerneldriver_gongchuang.git
+cd android_kerneldriver_gongchuang
+export DDK_TARGET=android14-6.1
+export DDK_IMAGE="ghcr.io/ylarod/ddk:${DDK_TARGET}-20260313"
+docker run --rm --platform linux/amd64 \
+  -e DDK_TARGET -e DDK_IMAGE \
+  -v "$PWD:/build" -w /build \
+  "$DDK_IMAGE" bash -lc 'bash scripts/build-ddk.sh'
+ls "artifacts/$DDK_TARGET/"
+```
+
+已经配置 DDK 工具链的 Linux 主机也可以执行 `DDK_TARGET=android14-6.1 make -j"$(nproc)"`，生成 `src/gongchuang.ko`。内核构建目录可通过 `KDIR=/path/to/kernel/output` 覆盖。
+
 ### 编译
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/yourusername/your-repo.git
-cd your-repo
+git clone https://github.com/blf123456/android_kerneldriver_gongchuang.git
+cd android_kerneldriver_gongchuang
 
 # 2. 配置编译脚本
 # 编辑 build_all.sh，设置以下变量：
-# - KERNEL_DIR: 内核源码目录
-# - PROJECT_DIR: 项目目录
+# - KERNELS_ROOT: 各版本内核源码的父目录
+# - DRIVER_SRC: 本项目 src 目录的绝对路径
 
 # 3. 运行编译脚本
 ./build_all.sh
