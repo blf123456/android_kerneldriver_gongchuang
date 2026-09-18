@@ -48,7 +48,7 @@ jobs:
       DDK_IMAGE: ghcr.io/ylarod/ddk:${{ matrix.target }}-20260313
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
@@ -67,7 +67,7 @@ jobs:
             "$DDK_IMAGE" bash -lc 'bash scripts/build-ddk.sh'
 
       - name: Upload module and build metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: gongchuang-${{ matrix.target }}
           path: artifacts/${{ matrix.target }}/
@@ -76,7 +76,7 @@ jobs:
 
       - name: Upload failed build diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: failed-build-${{ matrix.target }}
           path: |
